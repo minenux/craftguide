@@ -10,8 +10,8 @@ local recipes_cache = {}
 local usages_cache  = {}
 local fuel_cache    = {}
 
-local progressive_mode = M.settings:get_bool("craftguide_progressive_mode")
-local sfinv_only = M.settings:get_bool("craftguide_sfinv_only") and rawget(_G, "sfinv")
+local progressive_mode = M.settings:get_bool("craftguide_progressive_mode") or true
+local sfinv_only = M.settings:get_bool("craftguide_sfinv_only") and rawget(_G, "sfinv");if sfinv_only == nil then sfinv_only = true end
 
 local colorize = M.colorize
 local reg_items = M.registered_items
@@ -21,6 +21,25 @@ local get_player_by_name = M.get_player_by_name
 local serialize, deserialize = M.serialize, M.deserialize
 
 local ESC = M.formspec_escape
+
+if not M.translate then
+    function M.translate(textdomain, str, ...)
+	local arg = {n=select('#', ...), ...}
+	return str:gsub("@(.)", function(matched)
+	    local c = string.byte(matched)
+	    if string.byte("1") <= c and c <= string.byte("9") then
+		return arg[c - string.byte("0")]
+	    else
+		return matched
+	    end
+	end)
+    end
+
+    function M.get_translator(textdomain)
+	return function(str, ...) return M.translate(textdomain or "", str, ...) end
+    end
+end
+
 local S = M.get_translator("craftguide")
 
 local maxn, sort, concat, insert, copy =
@@ -895,9 +914,8 @@ local function on_receive_fields(player, fields)
 		end
 
 		local recipes = get_recipes(item, data, player)
-		if not recipes then
-			return
-		end
+	if data.show_usages and not recipes then return end
+	if not recipes      then return end
 
 		data.query_item = item
 		data.recipes    = recipes
@@ -1125,11 +1143,18 @@ if progressive_mode then
 	local function save_meta(player)
 		local name = player:get_player_name()
 		local data = player_data[name]
-
+		if data then
 		player:set_attribute("inv_items", serialize(data.inv_items))
+		end
 	end
 
-	M.register_on_leaveplayer(save_meta)
+	M.register_on_leaveplayer(function (player)
+		local name = player:get_player_name()
+		local data = player_data[name]
+		if data then
+		player:set_attribute("inv_items", serialize(data.inv_items))
+		end
+	end)
 
 	M.register_on_shutdown(function()
 		local players = M.get_connected_players()
