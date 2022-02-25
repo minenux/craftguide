@@ -297,8 +297,32 @@ local function get_item_usages(item)
 	return usages
 end
 
+local function item_in_inv(item, inv_items)
+	local inv_items_size = #inv_items
+	if sub(item, 1, 6) == "group:" then
+		local groups = extract_groups(item)
+		for i = 1, inv_items_size do
+			local inv_item = reg_items[inv_items[i]]
+			if inv_item then
+				local item_groups = inv_item.groups
+				if item_has_groups(item_groups, groups) then
+					return true
+				end
+			end
+		end
+	else
+		for i = 1, inv_items_size do
+			if inv_items[i] == item then
+				return true
+			end
+		end
+	end
+end
+
 local function get_filtered_items(player)
 	local items, c = {}, 0
+	local name = player:get_player_name()
+	local data = player_data[name]
 
 	for i = 1, #init_items do
 		local item = init_items[i]
@@ -307,6 +331,7 @@ local function get_filtered_items(player)
 
 		if recipes and #apply_recipe_filters(recipes, player) > 0 or
 		   (usages and (progressive_mode and item_in_inv(item, data.inv_items)) and
+		       #apply_recipe_filters(usages_cache[item], player) > 0) then
 			c = c + 1
 			items[c] = item
 		end
@@ -931,7 +956,7 @@ local function on_receive_fields(player, fields)
 end
 
 M.register_on_joinplayer(function(player)
-	if player
+	if player then
 		local name = player:get_player_name()
 		init_data(name)
 	end
