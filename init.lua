@@ -872,6 +872,7 @@ local function on_receive_fields(player, fields)
 
 		data.filter = fltr
 		data.pagenum = 1
+		if progressive_mode then data.item = nil end
 		search(data)
 		show_fs(player, name)
 
@@ -887,7 +888,7 @@ local function on_receive_fields(player, fields)
 		elseif data.pagenum == 0 then
 			data.pagenum = data.pagemax
 		end
-
+		if progressive_mode then data.item = nil end
 		show_fs(player, name)
 
 	elseif (fields.size_inc and data.iX < MAX_LIMIT) or
