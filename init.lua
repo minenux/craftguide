@@ -46,9 +46,9 @@ local maxn, sort, concat, insert, copy =
 	table.maxn, table.sort, table.concat, table.insert,
 	table.copy
 
-local fmt, find, gmatch, match, sub, split, lower =
+local fmt, find, gmatch, match, sub, split, upper, lower =
 	string.format, string.find, string.gmatch, string.match,
-	string.sub, string.split, string.lower
+	string.sub, string.split, string.upper, string.lower
 
 local min, max, floor, ceil = math.min, math.max, math.floor, math.ceil
 local pairs, next, unpack = pairs, next, unpack
@@ -306,7 +306,7 @@ local function get_filtered_items(player)
 		local usages = usages_cache[item]
 
 		if recipes and #apply_recipe_filters(recipes, player) > 0 or
-		   usages and #apply_recipe_filters(usages, player) > 0 then
+		   (usages and (progressive_mode and item_in_inv(item, data.inv_items)) and
 			c = c + 1
 			items[c] = item
 		end
@@ -405,7 +405,11 @@ local function get_tooltip(item, groups, cooktime, burntime)
 		groupstr = concat(groupstr, ", ")
 		tooltip = S("Any item belonging to the group(s): @1", groupstr)
 	else
-		tooltip = reg_items[item].description
+		local def = reg_items[item]
+
+		tooltip = def and def.description or
+		    (def and match(item, ":.*"):gsub("%W%l", upper):sub(2):gsub("_", " ") or
+		     S("Unknown Item (@1)", item)) -- TODO elaborate it
 	end
 
 	if cooktime then
@@ -723,7 +727,7 @@ local function search(data)
 	local filters = {}
 
 	if search_filter then
-		for filter_name, values in gmatch(filter, sub(pattern, 6, -1)) do
+		for filter_name, values in gmatch(filter, sub(pattern, 6)) do
 			if search_filters[filter_name] then
 				values = split(values, ",")
 				filters[filter_name] = values
@@ -734,7 +738,7 @@ local function search(data)
 	for i = 1, #data.items_raw do
 		local item = data.items_raw[i]
 		local def  = reg_items[item]
-		local desc = lower(def.description)
+		local desc = (def and def.description) and lower(def.description) or ""
 		local search_in = item .. desc
 		local to_add
 
@@ -928,11 +932,6 @@ end
 M.register_on_joinplayer(function(player)
 	local name = player:get_player_name()
 	init_data(name)
-end)
-
-M.register_on_leaveplayer(function(player)
-	local name = player:get_player_name()
-	player_data[name] = nil
 end)
 
 if sfinv_only then
@@ -1164,6 +1163,11 @@ if progressive_mode then
 		end
 	end)
 end
+
+M.register_on_leaveplayer(function(player)
+	local name = player:get_player_name()
+	player_data[name] = nil
+end)
 
 M.register_chatcommand("craft", {
 	description = S("Show recipe(s) of the pointed node"),
