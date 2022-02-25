@@ -931,8 +931,10 @@ local function on_receive_fields(player, fields)
 end
 
 M.register_on_joinplayer(function(player)
-	local name = player:get_player_name()
-	init_data(name)
+	if player
+		local name = player:get_player_name()
+		init_data(name)
+	end
 end)
 
 if sfinv_only then
@@ -1133,11 +1135,13 @@ if progressive_mode then
 	craftguide.add_recipe_filter("Default progressive filter", progressive_filter)
 
 	M.register_on_joinplayer(function(player)
-		local inv_items = player:get_attribute("inv_items")
-		local name = player:get_player_name()
-		local data = player_data[name]
+		if player then
+			local inv_items = player:get_attribute("inv_items")
+			local name = player:get_player_name()
+			local data = player_data[name]
 
-		data.inv_items = deserialize(inv_items) or {}
+			data.inv_items = deserialize(inv_items) or {}
+		end
 	end)
 
 	local function save_meta(player)
@@ -1149,10 +1153,12 @@ if progressive_mode then
 	end
 
 	M.register_on_leaveplayer(function (player)
-		local name = player:get_player_name()
-		local data = player_data[name]
-		if data then
-		player:set_attribute("inv_items", serialize(data.inv_items))
+		if player then
+			local name = player:get_player_name()
+			local data = player_data[name]
+			if data then
+				player:set_attribute("inv_items", serialize(data.inv_items))
+			end
 		end
 	end)
 
@@ -1166,8 +1172,10 @@ if progressive_mode then
 end
 
 M.register_on_leaveplayer(function(player)
-	local name = player:get_player_name()
-	player_data[name] = nil
+	if player then
+		local name = player:get_player_name()
+		player_data[name] = nil
+	end
 end)
 
 M.register_chatcommand("craft", {
